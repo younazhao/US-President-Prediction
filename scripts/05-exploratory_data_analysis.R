@@ -13,33 +13,18 @@ library(janitor)
 library(lubridate)
 library(dplyr)
 library(ggplot2)
-
+library(arrow)
 
 #### Read data ####
-analysis_data <- read_parquet("data/02-analysis_data/analysis_data.parquet")
+analysis_data <- read_parquet("data/02-analysis_data/Harris.parquet")
 data <- read.csv("data/01-raw_data/raw_data.csv")
 
 ### Histogram of Polls in Raw dataset
-hist(data$pct)
-
-### Filter through the data we want 
-harris <- data |> filter(
-  candidate_name == "Harris",
-  numeric_grade >= 2.7,
-  pollscore <= 0,
-  transparency_score >= 5.5
-)|>
-  mutate(
-    state = if_else(is.na(state), "National", state), 
-    end_date = mdy(end_date)
-  ) |>
-  mutate(
-    num_harris = round((pct / 100) * sample_size, 0) # Need number not percent for some models
-  )
+hist(data$pct, main = "Histogram of Raw Dataset of Polls", xlab = "poll", ylab = "Frequency")
 
 ### Only keeping the rows that we want to investigate
-harris <- harris |> select(sample_size, pollster, numeric_grade, pollscore, methodology, transparency_score, state, start_date, 
-                           end_date, population, party, answer, candidate_name, pct)
+harris <- analysis_data |> select(sample_size, pollster, numeric_grade, pollscore, methodology, transparency_score, state, start_date, 
+                                  end_date, population, party, answer, candidate_name, pct)
 
 ### Summary of the selected dataset
 summary(harris)
@@ -60,9 +45,9 @@ kable(summary_table, caption = "Statistics for Poll Percentage")
 
 ### Distribution of poll by pollster
 pollster_selected <- data |> filter(
-  numeric_grade >= 2.7,
+  numeric_grade >= 2.0,
   pollscore <= 0,
-  transparency_score >= 5.5
+  transparency_score >= 4
 )|>
   mutate(
     state = if_else(is.na(state), "National", state), 
@@ -90,5 +75,7 @@ ggplot(pollster_selected, aes(x = reorder(state, -table(state)[state]))) +
 ### Plot Harris Variable 
 ggplot(pollster_selected, aes(x = factor(harris))) +
   geom_bar() +
-  labs(title = "Distribution of Polls by Trump vs Harris", x = "Voter for Donald Trump", y = "Number of Polls") +
-  scale_x_discrete(labels = c("0" = "Harris", "1" = "Trump"))
+  labs(title = "Distribution of Polls by Trump vs Harris", x = "Voter for Kamala Harris", y = "Number of Polls") +
+  scale_x_discrete(labels = c("1" = "Harris", "0" = "Trump"), na.translate = TRUE) +
+  scale_x_discrete(labels = c("Harris", "Trump", "Others"))
+
