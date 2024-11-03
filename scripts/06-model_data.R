@@ -9,6 +9,7 @@
 # Pre-requisites: None
 # Any other information needed? None
 
+# Load required Library
 library(tidyr)
 library(readr)
 library(dplyr)
@@ -22,14 +23,6 @@ data <- read_csv("data/01-raw_data/poll_raw_data.csv") |>
   clean_names()
 
 # Filter data to Harris estimates based on high-quality polls after she declared
-# Load required packages
-library(tidyr)
-library(readr)
-library(dplyr)
-library(lubridate)
-library(rstanarm)
-library(janitor)
-library(ggplot2)
 
 just_harris_high_quality <- read.csv("data/02-analysis_data/Harris.csv")
 just_trump_high_quality <- read.csv("data/02-analysis_data/Trump.csv")
