@@ -372,7 +372,13 @@ To aggregate the polls for all states, the result of each states is multiplied b
 
 ### Survey
 
-Google form of the survey is available here:  https://docs.google.com/forms/d/1obaebX3zqw7WJEd1lHrF-DVBXdZt5tbjHofjsWj9zf8/prefill 
+Google form of the survey is available here: [Google Form](https://docs.google.com/forms/d/1obaebX3zqw7WJEd1lHrF-DVBXdZt5tbjHofjsWj9zf8/prefill)
+
+**US Presidential Election Survey** \
+**Purpose:** pre-election survey on public votes distribution. \
+**Estimated Completion Time:** Less than 5 minutes \
+
+All responses are anonymous.
 
 1. What is the postal code of where you live?
 
@@ -418,7 +424,7 @@ Google form of the survey is available here:  https://docs.google.com/forms/d/1o
 * Non-binary
 * Prefer not to say
 
-8. What is your Ethnity/Race?
+8. What is your Ethnicity /Race?
 
 * White
 * Black or African American
@@ -428,7 +434,7 @@ Google form of the survey is available here:  https://docs.google.com/forms/d/1o
 * Native Hawaiian or Other Pacific Islander
 * Middle Eastern or North African
 * Prefer not to say
-* Other (please specify) [optional text box]
+
 
 9. What is your Education Level?
 
@@ -449,7 +455,6 @@ Google form of the survey is available here:  https://docs.google.com/forms/d/1o
 * Undecided
 
 11. Is there anything else you’d like to share about your voting decision or concerns?
-
 
 
 ### Budget Specification
