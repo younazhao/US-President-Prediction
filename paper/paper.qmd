@@ -223,163 +223,6 @@ ggplot(swingstates, aes(x = end_date, y = pct, color = candidate_name)) +
 
 In this analysis, we aim to model the popularity trends for the two 2024 president nominates, Kamala Harris and Donald Trump, based on high-quality polling data collected at the national level after Harris’s declaration on July 21, 2024. We used Bayesian linear regression models with Gaussian error structures to estimate changes in polling percentages over time for each candidate.
 
-## Model Check {#sec-model-check}
-
-```{r}
-#| label: fig-harrisposcheck_1
-#| echo: false
-#| fig-cap: "Posterior Predictive Check for Harris model"
-#| message: false
-# Load necessary libraries
-library(rstanarm)
-library(bayesplot)
-library(ggplot2)
-library(patchwork)  # For combining plots
-library(arrow)
-
-model1 <- readRDS(file = here::here("models/models_harris.rds"))
-
-pp_check(model1) +  
-    theme_classic() +
-    theme(legend.position = "bottom")
-```
-```{r}
-#| label: fig-harrisposcheck_2
-#| echo: false
-#| fig-cap: "Comparing the posterior with the prior for Harris model"
-#| message: false
-just_harris_high_quality <- read_parquet(here::here("data/02-analysis_data/Harris.parquet"))
-
-posterior_vs_prior(model1) +
-  theme_minimal() +
-  scale_color_brewer(palette = "Set1") +
-  theme(legend.position = "bottom") +
-  coord_flip()
-
-```
-
-```{r}
-#| label: fig-trumpposcheck_1
-#| echo: false
-#| fig-cap: "Posterior Predictive Check for Trump model"
-#| message: false
-
-# Load necessary libraries
-library(rstanarm)
-library(bayesplot)
-library(ggplot2)
-library(patchwork)  # For combining plots
-
-model2 <- readRDS(file = here::here("models/models_trump.rds"))
-
-pp_check(model2) +  
-    theme_classic() +
-    theme(legend.position = "bottom")
-```
-
-```{r}
-#| label: fig-trumpposcheck_2
-#| echo: false
-#| fig-cap: "Comparing the posterior with the prior for Trump model"
-#| message: false
-
-just_trump_high_quality <- read_parquet(here::here("data/02-analysis_data/Trump.parquet"))
-
-posterior_vs_prior(model2) +
-  theme_minimal() +
-  scale_color_brewer(palette = "Set1") +
-  theme(legend.position = "bottom") +
-  coord_flip()
-
-```
-
-
-```{r}
-#| label: fig-CIHarris
-#| echo: false
-#| fig-cap: "CI for predictors for Harris"
-#| message: false
-
-# Load necessary libraries
-library(rstanarm)
-library(bayesplot)
-library(ggplot2)
-library(patchwork)  # For combining plots
-
-plot(
-  model1,
-  "areas")
-```
-
-
-```{r}
-#| label: fig-CITrump
-#| echo: false
-#| fig-cap: "CI for predictors for Trump"
-#| message: false
-
-# Load necessary libraries
-library(rstanarm)
-library(bayesplot)
-library(ggplot2)
-library(patchwork)  # For combining plots
-
-plot(
-  model2,
-  "areas")
-```
-
-
-```{r}
-#| label: fig-harrisdi_1
-#| echo: false
-#| fig-cap: "Trace plot for Harris model"
-#| message: false
-
-# Load necessary libraries
-library(rstanarm)
-library(bayesplot)
-library(ggplot2)
-library(patchwork)  # For combining plots
-
-plot(model1, "trace")
-```
-
-```{r}
-#| label: fig-harrisdi_2
-#| echo: false
-#| fig-cap: "Rhat plot for Harris model"
-#| message: false
-plot(model1, "rhat")
-
-```
-
-
-```{r}
-#| label: fig-trumpdi_1
-#| echo: false
-#| fig-cap: "Trace plot for Trump model"
-#| message: false
-
-# Load necessary libraries
-library(rstanarm)
-library(bayesplot)
-library(ggplot2)
-library(patchwork)  # For combining plots
-plot(model2, "trace")
-```
-
-```{r}
-#| label: fig-trumpdi_2
-#| echo: false
-#| fig-cap: "Rhat plot for Trump model"
-#| message: false
-plot(model2, "rhat")
-
-```
-
-\newpage
-
 ## Data Filtering and Preparation {#sec-model-preparation}
 
 The data were first filtered to retain only high-quality polls, defined as those with a numeric grade of 2.0 or above and a transparency score of 4 or higher. We focused exclusively on polls where the *state* variable indicates national coverage, ensuring the poll represents nationwide opinions rather than a single state, which could introduce bias. Additionally, we filtered for polls conducted after July 21, 2024, the date when Kamala Harris announced her candidacy.
@@ -471,7 +314,7 @@ kable(model_summary, digits = 3)
 The intercept of both model is positive, with Harris at 40.47 and Trump slightly lower than Harris at 40.36. The trend of support rate for both candidates with respect of time is positive but Harris's increment (0.10) is larger than Trump's (0.06). 
 
 ## Model Diagnostics {#sec-result-diagnostics}
-The model diagnostics indicate a strong fit and reliable predictive performance for both candidates, as detailed in the plots in the model section @sec-model-check. Posterior predictive checks ( @fig-harrisposcheck_1, @fig-harrisposcheck_2, @fig-trumpposcheck_1, and @fig-trumpposcheck_2) show that the predicted values align well with the observed data, suggesting that the models effectively capture key data patterns. Furthermore, the comparison of posterior and prior variables indicates minimal deviation, affirming an appropriate choice of priors. The credible intervals for the predictors (@fig-CIHarris and @fig-CITrump) encompass the observed support rates, demonstrating that the models adequately account for uncertainty in their predictions.
+The model diagnostics indicate a strong fit and reliable predictive performance for both candidates, as detailed in the plots in the appendix section @sec-app-M. Posterior predictive checks ( @fig-harrisposcheck_1, @fig-harrisposcheck_2, @fig-trumpposcheck_1, and @fig-trumpposcheck_2) show that the predicted values align well with the observed data, suggesting that the models effectively capture key data patterns. Furthermore, the comparison of posterior and prior variables indicates minimal deviation, affirming an appropriate choice of priors. The credible intervals for the predictors (@fig-CIHarris and @fig-CITrump) encompass the observed support rates, demonstrating that the models adequately account for uncertainty in their predictions.
 
 Additional robustness checks (@fig-harrisdi_1, @fig-harrisdi_1, @fig-trumpdi_1, and @fig-trumpdi_2) confirm the stability of these models. The R-hat values for all parameters are below 1.1, indicating good convergence of the MCMC chains and reliable parameter estimates. This convergence supports the conclusion that the sampling process reached a stable distribution, reinforcing the credibility of our inferences.
 
@@ -756,6 +599,164 @@ Total: $100,000
 
 The survey uses cluster sampling to sample the swing states based on postal codes. After data collection and validation, weighting based on the likelihood of voting and decisiveness of the respondents, the total votes for Donald Trump and Kamala Harris are calulated. The candidate with more than 270 votes are predicted to win the election{@nationalarchives2024electoral}.
 
+\newpage
+
+## Appendix 3 - Model validation plots {#sec-app-M}
+
+```{r}
+#| label: fig-harrisposcheck_1
+#| echo: false
+#| fig-cap: "Posterior Predictive Check for Harris model"
+#| message: false
+# Load necessary libraries
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+library(patchwork)  # For combining plots
+library(arrow)
+
+model1 <- readRDS(file = here::here("models/models_harris.rds"))
+
+pp_check(model1) +  
+    theme_classic() +
+    theme(legend.position = "bottom")
+```
+```{r}
+#| label: fig-harrisposcheck_2
+#| echo: false
+#| fig-cap: "Comparing the posterior with the prior for Harris model"
+#| message: false
+just_harris_high_quality <- read_parquet(here::here("data/02-analysis_data/Harris.parquet"))
+
+posterior_vs_prior(model1) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1") +
+  theme(legend.position = "bottom") +
+  coord_flip()
+
+```
+
+```{r}
+#| label: fig-trumpposcheck_1
+#| echo: false
+#| fig-cap: "Posterior Predictive Check for Trump model"
+#| message: false
+
+# Load necessary libraries
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+library(patchwork)  # For combining plots
+
+model2 <- readRDS(file = here::here("models/models_trump.rds"))
+
+pp_check(model2) +  
+    theme_classic() +
+    theme(legend.position = "bottom")
+```
+
+```{r}
+#| label: fig-trumpposcheck_2
+#| echo: false
+#| fig-cap: "Comparing the posterior with the prior for Trump model"
+#| message: false
+
+just_trump_high_quality <- read_parquet(here::here("data/02-analysis_data/Trump.parquet"))
+
+posterior_vs_prior(model2) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1") +
+  theme(legend.position = "bottom") +
+  coord_flip()
+
+```
+
+
+```{r}
+#| label: fig-CIHarris
+#| echo: false
+#| fig-cap: "CI for predictors for Harris"
+#| message: false
+
+# Load necessary libraries
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+library(patchwork)  # For combining plots
+
+plot(
+  model1,
+  "areas")
+```
+
+
+```{r}
+#| label: fig-CITrump
+#| echo: false
+#| fig-cap: "CI for predictors for Trump"
+#| message: false
+
+# Load necessary libraries
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+library(patchwork)  # For combining plots
+
+plot(
+  model2,
+  "areas")
+```
+
+
+```{r}
+#| label: fig-harrisdi_1
+#| echo: false
+#| fig-cap: "Trace plot for Harris model"
+#| message: false
+
+# Load necessary libraries
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+library(patchwork)  # For combining plots
+
+plot(model1, "trace")
+```
+
+```{r}
+#| label: fig-harrisdi_2
+#| echo: false
+#| fig-cap: "Rhat plot for Harris model"
+#| message: false
+plot(model1, "rhat")
+
+```
+
+
+```{r}
+#| label: fig-trumpdi_1
+#| echo: false
+#| fig-cap: "Trace plot for Trump model"
+#| message: false
+
+# Load necessary libraries
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+library(patchwork)  # For combining plots
+plot(model2, "trace")
+```
+
+```{r}
+#| label: fig-trumpdi_2
+#| echo: false
+#| fig-cap: "Rhat plot for Trump model"
+#| message: false
+plot(model2, "rhat")
+
+```
+
+\newpage
 # References {#sec-reference}
 
 
