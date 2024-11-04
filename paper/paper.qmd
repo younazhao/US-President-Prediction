@@ -6,18 +6,29 @@ author:
   - Felix Li
   - Wen Han Zhao 
 thanks: "Code and data are available at: [https://github.com/younazhao/US-President-Prediction/tree/main](https://github.com/younazhao/US-President-Prediction/tree/main)."
-date: 22 October 2024
+date: 4 November 2024
 date-format: long
-abstract: "In this study, we aim to study the 2024 U.S. Presidential Election with the methodology of  polls of polls across various states. With the insightful analyses on polls provided by Redfiled & Wilton Strategies, the conducted survey on the population highlights various key point for the prediction of US president. Using Generalized Linear Models (GLMs), this report analyzes the accuracy of prediction in president votes through several key variables from pollster. The model incorporates variables such as pollscore, methodology, transparency_score and hypothetical. The prediction finding highlights the significance of candicate trustworthiness among the voter decision, providing insights for swing voters. This analysis offers valuable information into the potential electoral outcomes driving the 2024 US president election. "
+abstract: "In this study, we aim to study the 2024 U.S. Presidential Election with the methodology of  polls of polls across various states. With the insightful analyses on polls provided by Redfiled & Wilton Strategies, the conducted survey on the population highlights various key point for the prediction of US president. Using Bayesian linear model, this report analyzes the prediction of presidential votes through data collected from pollsters. The prediction finding highlights the significance of candicate trustworthiness among the voter decision, providing insights for swing voters. This analysis offers valuable information into the potential electoral outcomes driving the 2024 US president election. "
 format: pdf
 number-sections: true
+toc: true
 bibliography: references.bib
+output: 
+  pdf_document:
+    latex_engine: xelatex
 ---
 
 ```{r}
 #| include: false
 #| warning: false
 #| message: false
+#install.packages("rstanarm")
+#install.packages("xts")
+#install.packages("QuickJSR")
+#install.packages("RcppEigen")
+#install.packages("StanHeaders")
+#install.packages("gfortran")
+library(StanHeaders)
 library(tidyverse)
 library(knitr)
 library(kableExtra)
@@ -27,63 +38,330 @@ library(rstanarm)
 library(bayesplot)
 library(ggplot2)
 library(ggpubr)
+library(lubridate)
+library(arrow)
+library(scales)
 ```
 
 
-# Introduction
+# Introduction {#sec-Introduction}
 
-Overview paragraph
+As November approaches, the United State of America's presidential election will soon be determined. The tight competition between Kamala Harris representing the Democratic Party and Donald Trump representing the Republican Party will determine the next President of United State for a 4 year term beginning January 2025 @electiondate. The final result will be held on November 5th 2024, which will be decided by a favorable outcome biased toward one candidate. Before this final date, various pollsters will use the method of "polls by polls" to provide a high-level view of public sentiment by averaging results from multiple polling sources and methods @pollsofpolls. From the dataset provided by Five Thirty Eight @fivethirtyeight2024, the paper could identify various results from polls of polls in order to predict the next president of America. 
 
-Estimand paragraph
+By performing a Bayesian linear model, which formulate linear regression using probability distributions rather than point estimates @bayesian, the analysis focus on the support rate for the 2 main candidate, Kamala Harris and Donald Trump. This approach allows for a nuanced understanding of the likely range of outcomes by capturing variability in the polling data. By combining insights from various pollsters and applying a Bayesian linear model, this paper seeks to forecast the presidential election based on current trends and public opinion. 
 
-Results paragraph
-
-Why it matters paragraph
-
-Telegraphing paragraph: The remainder of this paper is structured as follows. @sec-data....
-
-
-
+To do this, Five Thirty Eight data were analysed from 2022 to 2024 in @sec-data. With our predicted model in @sec-model, the results in @sec-result show a preference toward Harris with a positive intercept of 40.97, over the results of Trump. In addition, the overall trend of Harris support rate has a larger increments than Trumps, suggesting a higher probability of winning this election. A discussion is provided in results and future suggestion in @sec-discussion. In the appendix, a pollster methodology analysis on Redfield & Wilton Strategies is performed in @sec-appendix-pollster_methodology. Lastly, an idealized methodology and survey is conducted in  @sec-appendix-survey.
 
 
 # Data {#sec-data}
 
-## Overview
+## Overview {#sec-data-overview}
 
-cite R, packages, dataa
-The data used in this paper is source from FiveThirtyEight ("538presidentialpolls", 2024). T
-We use the statistical programming language R [@citeR].... Our data.... Following @tellingstories, we consider...
+The data used in this paper is sourced from FiveThirtyEight [@fivethirtyeight2024]. The polls dataset contains 52 columns and 16,408 rows. It has polls information from multiple pollsters with variables that evaluate each pollster's quality like numeric grade, pollscore, transparency and sample size, as well as other information about the pollster like start and end date of the poll. Similar datasets are available but this dataset has most precise date and is the reason that we choose this dataset.
 
-Overview text
+We use the statistical programming language R [@citeR] to download, clean and analyze data, as well as in exploratory data analysis and building models. Besides, the following packages are utilized in model generation and result production process:
+
+- tidyverse [@tidyverse]
+- lubridate [@lubridate]
+- dplyr [@dplyr]
+- knitr [@knitr]
+- kableExtra [@kableExtra]
+- readr [@readr]
+- rstanarm [@rstanarm]
+- bayesplot [@bayesplot]
+- ggplot2 [@ggplot2]
+- ggpubr [@ggpubr]
+- tidyr [@tidyr]
+- janitor [@janitor]
+- scales [@scales]
+- arrow [@arrow]
 
 
-## Measurement
+## Measurement {#sec-data-measurement}
 	
-Some paragraphs about how we go from a phenomena in the world to an entry in the dataset.
+Since the dataset is a collection of polls from various pollsters, the measurement is done differently. We're interested in how each pollster conduct the polls. In @sec-appendix-pollster_methodology, the methodology and measurement of Redfield & Wilton Strategies is explained in detail. 
 
-## Outcome variables
+## Data Cleaning {#sec-data-cleaning}
 
-Talk way more about it. 
-
-## Predictor variables
-
-Add graphs, tables and text.
-
-Use sub-sub-headings for each outcome variable and feel free to combine a few into one if they go together naturally.
+The data is cleaned by filtering out Harris and Trump respectively. Based on the average of the variables that evaluate the quality of the pollsters, we also filtered out the entries with insignificant and low numeric grade, transparency and pollscore.
 
 
+## Summary Statistics {#sec-data-summary}
+
+```{r}
+#| label: tbl-summarystatistics
+#| echo: false
+#| tbl-cap: "Poll Percentage Attributes"
+#| warning: false
+
+data <- read_csv(here::here("data/01-raw_data/raw_data.csv"))
+
+mean_pct <- mean(data$pct)
+sd_pct <- sd(data$pct)
+min_pct <- min(data$pct)
+max_pct <- max(data$pct)
+
+summary_table <- data.frame( Metric = c("Mean", "Standard Deviation", "Minimum", "Maximum"),
+                             Value = c(mean_pct, sd_pct, min_pct, max_pct))
+
+kable(summary_table, caption = "Statistics for Poll Percentage")
+
+```
+
+@tbl-summarystatistics summarize the atribute of the poll percentages from the whole dataset. With maximum 70% and minimum 0%. We can tell that there is not extreme or abnormal values of the poll percentages.
+
+\newpage
+
+```{r}
+#| label: fig-pollsbystate
+#| echo: false
+#| fig-cap: "Distribution of Polls by Pollsters"
+#| warning: false
+
+# Apply filters to select relevant data
+pollster_selected <- data %>%
+  filter(
+    numeric_grade >= 2.0,
+    pollscore <= 0,
+    transparency_score >= 4
+  ) %>%
+  mutate(
+    state = if_else(is.na(state), "National", state),
+    number_pct = round((pct / 100) * sample_size, 0)
+  ) %>%
+  group_by(pollster) %>%
+  filter(n() > 50)
+
+# Plot the distribution of sample size by National and State polls with x-axis limit
+ggplot(pollster_selected, aes(x = sample_size, fill = state == "National")) +
+  geom_histogram(bins = 20, color = "black", position = "stack") +
+  scale_fill_manual(values = c("blue", "steelblue"), labels = c("State", "National")) +
+  labs(
+    title = "Distribution of Sample Size by Poll Type (National vs. State)",
+    x = "Sample Size",
+    y = "Frequency",
+    fill = "Poll Type"
+  ) +
+  xlim(0, 5000) +  # Adjust this limit as needed
+  theme_minimal()
+
+```
+
+@fig-pollsbystate shows the distribution of polls by sample size and state. National polls has larger sample size but lower frequency while State polls has the opposite trend.
+
+\newpage
+
+```{r}
+#| label: fig-nationalvstime
+#| fig-cap: "National Poll Percentage for Trump & Harris"
+#| echo: false
+#| warning: false
+#| message: false
+
+# Convert end_date column to Date format and filter data
+nationalvstime <- pollster_selected %>%
+  mutate(
+    end_date = mdy(end_date) )%>% # Adjust format if needed
+  filter(
+    state == "National",
+    candidate_name %in% c("Kamala Harris", "Donald Trump"),
+    end_date >= as.Date("July/21/2024", format = "%B/%d/%Y"),
+  )
+
+# Plot
+ggplot(nationalvstime, aes(x = end_date, y = pct, color = candidate_name)) +
+  stat_summary(geom = "line", fun = mean) +  # Plot the mean line for polling percentages
+  geom_point(size = 1, alpha = 0.25) +       # Add points for each individual poll
+  scale_color_manual(values = c("Kamala Harris" = "blue", "Donald Trump" = "red")) +
+  labs(title = "National Poll Percentage for Trump & Harris", x = "", y = "", color = "") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(limits = c(0, 60), labels = scales::percent_format(scale = 1)) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b %e")
+
+```
+
+@fig-nationalvstime shows the national poll percentage for the most competitive candidates: Donald Trump and Kamala Harris since Kamala Harris became the president candidate. As the date closet to election day, the poll percentages of the two candidates become closer and closer.
+
+\newpage
+
+```{r}
+#| label: fig-swingstates
+#| fig-cap: Swing States Poll Percentages
+#| echo: false
+#| warning: false
+#| message: false
+
+# Filter and mutate data for swing states
+swingstates <- pollster_selected %>%
+  mutate(end_date = mdy(end_date)) %>%
+  filter(state %in% c("Wisconsin", "Michigan", "Pennsylvania", "Nevada", 
+                      "Arizona", "Georgia", "North Carolina", "Nebraska CD-2"),
+         candidate_name %in% c("Kamala Harris", "Donald Trump"),
+         end_date >= as.Date("July/21/2024", format = "%B/%d/%Y"))
+
+# Plotting polling percentages for each swing state
+ggplot(swingstates, aes(x = end_date, y = pct, color = candidate_name)) +
+  stat_summary(geom = "line", fun = mean, size = 1) +          # Mean line for each candidate
+  geom_point(size = 1, alpha = 0.15) +                         # Poll points for each poll
+  scale_color_manual(values = c("Kamala Harris" = "blue", 
+                                "Donald Trump" = "red")) +     # Color by candidate
+  labs(title = "Polling Trends in Key Swing States",
+       x = "Date",
+       y = "Polling Percentage",
+       color = "Candidate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(limits = c(0, 60), labels = percent_format(scale = 1)) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b %e") +
+  facet_wrap(~state)
+```
+
+@fig-swingstates shows polling trends for Kamala Harris and Donald Trump in swing states. Most states show a close race with stable trends, except Nebraska CD-2, where Harris leads. This highlights the competitiveness of these states in the election.
 
 # Model {#sec-model}
 
 In this analysis, we aim to model the popularity trends for the two 2024 president nominates, Kamala Harris and Donald Trump, based on high-quality polling data collected at the national level after Harris’s declaration on July 21, 2024. We used Bayesian linear regression models with Gaussian error structures to estimate changes in polling percentages over time for each candidate.
 
-## Data Filtering and Preparation
+## Model Check {#sec-model-check}
+
+```{r}
+#| label: fig-harrisposcheck
+#| echo: false
+#| fig-cap: "Posterior Predictive Check for All Models"
+#| message: false
+# Load necessary libraries
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+library(patchwork)  # For combining plots
+library(arrow)
+
+model1 <- readRDS(file = here::here("models/models_harris.rds"))
+
+pp_check(model1) +  
+    theme_classic() +
+    theme(legend.position = "bottom")
+
+just_harris_high_quality <- read_parquet(here::here("data/02-analysis_data/Harris.parquet"))
+
+posterior_vs_prior(model1) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1") +
+  theme(legend.position = "bottom") +
+  coord_flip()
+
+```
+
+```{r}
+#| label: fig-trumpposcheck
+#| echo: false
+#| fig-cap: "Posterior Predictive Check for All Models"
+#| message: false
+
+# Load necessary libraries
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+library(patchwork)  # For combining plots
+
+model2 <- readRDS(file = here::here("models/models_trump.rds"))
+
+pp_check(model2) +  
+    theme_classic() +
+    theme(legend.position = "bottom")
+
+just_trump_high_quality <- read_parquet(here::here("data/02-analysis_data/Trump.parquet"))
+
+posterior_vs_prior(model2) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1") +
+  theme(legend.position = "bottom") +
+  coord_flip()
+
+```
+
+
+```{r}
+#| label: fig-CIHarris
+#| echo: false
+#| fig-cap: "CI for predictors for Harris"
+#| message: false
+
+# Load necessary libraries
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+library(patchwork)  # For combining plots
+
+plot(
+  model1,
+  "areas")
+```
+
+
+```{r}
+#| label: fig-CITrump
+#| echo: false
+#| fig-cap: "CI for predictors for Trump"
+#| message: false
+
+# Load necessary libraries
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+library(patchwork)  # For combining plots
+
+plot(
+  model2,
+  "areas")
+```
+
+
+```{r}
+#| label: fig-harrisdi
+#| echo: false
+#| fig-cap: "Model diagonostic for Harris"
+#| message: false
+
+# Load necessary libraries
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+library(patchwork)  # For combining plots
+
+plot(model1, "trace")
+plot(model1, "rhat")
+
+```
+
+
+```{r}
+#| label: fig-trumpdi
+#| echo: false
+#| fig-cap: "Model diagonostic for Trump"
+#| message: false
+
+# Load necessary libraries
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+library(patchwork)  # For combining plots
+
+plot(model2, "trace")
+plot(model2, "rhat")
+
+```
+
+\newpage
+
+## Data Filtering and Preparation {#sec-model-preparation}
 
 The data were first filtered to retain only high-quality polls, defined as those with a numeric grade of 2.0 or above and a transparency score of 4 or higher. We focused exclusively on polls where the *state* variable indicates national coverage, ensuring the poll represents nationwide opinions rather than a single state, which could introduce bias. Additionally, we filtered for polls conducted after July 21, 2024, the date when Kamala Harris announced her candidacy.
 
 To prevent issues with missing data in our models, we excluded any rows where key variables (such as polling percentage or end date) were missing.
 
-## Model Specification
+## Model Specification {#sec-model-specification}
 
 Two separate Bayesian linear regression models were fitted using the @rs package. Both models specified the formula:
 
@@ -96,13 +374,13 @@ Y_i | \mu_i,\sigma  & \sim \text{Normal}(\mu_i,\sigma) \\
 
 Where $Y_i$ is the support rate for Harris or Trump, separately, and $X_{i1}$ is the number of days passed after the latest polling sample of Trump or Harris. 
 
-## Model Justification and Limitations
+## Model Justification and Limitations {#sec-model-justification}
 We opted to use two separate models for Trump and Harris, as their supporter demographics differ significantly in ways that are challenging to capture within a single or even a small set of variables @pew_harris_trump_2024. The polling dataset we obtained primarily reflects the characteristics and trends within individual polls rather than offering direct predictors of the presidential election outcome. To maximize the model’s reliability, we refined the dataset by selecting polls with high credibility rather than attempting to predict outcomes directly from the available data.
 
 Our model uses a simple linear approach with time as the sole predictor variable. While this may introduce potential bias by making a simplifying assumption about the trend over time, it also has the advantage of being straightforward to fit and interpret. This trade-off allows us to capture general trends while minimizing the risk of overfitting to limited or potentially inconsistent data sources.
 
 
-# Results {#set-result}
+# Results {#sec-result}
 The results of the Bayesian linear regression models for Kamala Harris and Donald Trump are summarized in @tbl-model_summary_H and @tbl-model_summary_T.
 
 ```{r}
@@ -135,6 +413,7 @@ model_summary <- broom.mixed::tidy(model1, effects = "fixed", conf.int = TRUE) %
 kable(model_summary, digits = 3)
 
 ```
+
 ```{r}
 #| label: tbl-model_summary_T
 #| echo: false
@@ -162,149 +441,136 @@ model_summary <- broom.mixed::tidy(model2, effects = "fixed", conf.int = TRUE) %
 # Display the summary table
 kable(model_summary, digits = 3)
 ```
-## Overall trend
+
+## Overall Trend {#sec-result-trend}
 The intercept of both model is positive, with Harris at 40.47 and Trump slightly lower than Harris at 40.36. The trend of support rate for both candidates with respect of time is positive but Harris's increment (0.10) is larger than Trump's (0.06). 
 
-## Model Diagnostics
-The model diagnostics indicate a strong fit and reliable predictive performance for both candidates, as detailed in the plots in Appendix @sec-model-details. Posterior predictive checks (Figures @fig-pos_check_H and @fig-pos_check_T) show that the predicted values align well with the observed data, suggesting that the models effectively capture key data patterns. Furthermore, the comparison of posterior and prior variables indicates minimal deviation, affirming an appropriate choice of priors. The credible intervals for the predictors (Figures @fig-CI_H and @fig-CI_T) encompass the observed support rates, demonstrating that the models adequately account for uncertainty in their predictions.
+## Model Diagnostics {#sec-result-diagnostics}
+The model diagnostics indicate a strong fit and reliable predictive performance for both candidates, as detailed in the plots in the model section @sec-model-check. Posterior predictive checks ( @fig-harrisposcheck and @fig-trumpposcheck) show that the predicted values align well with the observed data, suggesting that the models effectively capture key data patterns. Furthermore, the comparison of posterior and prior variables indicates minimal deviation, affirming an appropriate choice of priors. The credible intervals for the predictors (@fig-CIHarris and @fig-CITrump) encompass the observed support rates, demonstrating that the models adequately account for uncertainty in their predictions.
 
-Additional robustness checks (Figures @fig-DI_H and @fig-DI_T) confirm the stability of these models. The R-hat values for all parameters are below 1.1, indicating good convergence of the MCMC chains and reliable parameter estimates. This convergence supports the conclusion that the sampling process reached a stable distribution, reinforcing the credibility of our inferences.
+Additional robustness checks (@fig-harrisdi and @fig-trumpdi) confirm the stability of these models. The R-hat values for all parameters are below 1.1, indicating good convergence of the MCMC chains and reliable parameter estimates. This convergence supports the conclusion that the sampling process reached a stable distribution, reinforcing the credibility of our inferences.
 
 In conclusion, these diagnostics verify that the models are both stable and effective in reflecting trends in the data, confirming their reliability for further analysis.
+
+## Prediction Visualization {#sec-result-visualization}
+
+```{r}
+#| label: fig-predictiongraph
+#| echo: false
+#| fig-cap: "2024 US Presidential Election Prediction Based Baysian Linear Model"
+
+# The date where Harris is been elected to run for President in Democratic Party
+earliest_date <- as.Date("2024-07-21")
+just_harris_high_quality <- read_parquet(here::here('data/02-analysis_data/Harris.parquet'))
+just_trump_high_quality <- read_parquet(here::here('data/02-analysis_data/Trump.parquet'))
+
+# Define the target end date
+last_date <- as.Date("2024-11-05")
+
+# Calculate the number of days from earliest_date to last_date
+days_to_last_date <- as.numeric(last_date - earliest_date)
+
+# Generate prediction data frame with days_after_earliest up to days_to_last_date
+days_range <- data.frame(days_after_earliest = seq(0, days_to_last_date, by = 1))
+
+# Convert days_after_earliest to actual dates by adding them to earliest_date
+days_range$end_date <- earliest_date + days_range$days_after_earliest
+
+# Harris predictions
+harris_predictions <- predict(model1, newdata = days_range, se.fit = TRUE)
+days_range$harris_pct <- harris_predictions$fit
+days_range$harris_se <- harris_predictions$se.fit
+
+# Trump predictions
+trump_predictions <- predict(model2, newdata = days_range, se.fit = TRUE)
+days_range$trump_pct <- trump_predictions$fit
+days_range$trump_se <- trump_predictions$se.fit
+
+# Add actual poll data to plot
+just_harris_high_quality$Candidate <- "Harris"
+just_trump_high_quality$Candidate <- "Trump"
+poll_data <- rbind(just_harris_high_quality, just_trump_high_quality)
+
+days_range$end_date <- as.Date(days_range$end_date, origin = "2024-07-21")
+
+# Plot
+ggplot(data = days_range, aes(x = end_date)) +
+  # Harris line and confidence interval
+  geom_line(aes(y = harris_pct, color = "Harris"), linewidth = 1) +
+  geom_ribbon(aes(ymin = harris_pct - 1.96 * harris_se, ymax = harris_pct + 1.96 * harris_se, fill = "Harris"), alpha = 0.2) +
+  
+  # Trump line and confidence interval
+  geom_line(aes(y = trump_pct, color = "Trump"), linewidth = 1) +
+  geom_ribbon(aes(ymin = trump_pct - 1.96 * trump_se, ymax = trump_pct + 1.96 * trump_se, fill = "Trump"), alpha = 0.2) +
+  
+  # Actual poll data points
+  geom_point(data = poll_data, aes(x = end_date, y = pct, color = Candidate), alpha = 0.5) +
+  
+  # Axis labels and title
+  labs(title = "Polling Trends for Harris and Trump",
+       x = "Date",
+       y = "Polling Percentage (%)",
+       color = "Candidate",
+       fill = "Candidate") +
+  
+  # Custom x-axis to show every 2 months
+  scale_x_date(
+  date_breaks = "2 weeks",      # Show every 2 weeks
+  date_labels = "%b %d",        # Format to show month and day (e.g., "Jul 21")
+  limits = c(earliest_date, as.Date("2024-11-05"))
+) +
+  
+  # Highlight Nov 5th specifically with a dashed line
+  geom_vline(xintercept = as.numeric(as.Date("2024-11-05")), linetype = "dashed", color = "black") +
+  
+  # Color scheme
+  scale_color_manual(values = c("Harris" = "blue", "Trump" = "red")) +
+  scale_fill_manual(values = c("Harris" = "blue", "Trump" = "red")) +
+  
+  # Theme for cleaner look
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate labels slightly to 45 degrees
+  )
+
+
+```
+
+# Discussion {#sec-discussion}
+
+## Limitation {#sec-discussion-limitation}
+
+Our current model relies solely on national polls with time as the predictor, which gives an overall trend but misses regional dynamics, especially in critical swing states. Including state-level polls and additional factors like state polls and weighting based on numeric grade of pollsters could improve accuracy by capturing localized trends.
+
+The model’s assumption of a constant trend over time introduces bias by ignoring natural fluctuations in voter sentiment due to campaign events or media cycles. A time series model, which accounts for these changes, would offer a more accurate prediction, as suggested in @sec-discussion-suggestion.
+
+Additionally, our reliance on "polls of polls" introduces biases stemming from differences in polling methodologies and potential political leanings of individual pollsters. Excluding lower-graded polls further limits our data, potentially overlooking relevant insights. Thus, future improvements should focus on including state-specific data, additional predictors, and a time series approach to enhance predictive accuracy.
+
+## Suggestion for Future Step {#sec-discussion-suggestion}
+
+In terms of suggestion for future step, we should considering using time series as a model for this research. As we use start time and end time for the dataset of pollster, the prediction is continuous on this timeline. As more polls of polls are performed by various pollster, more data points are been collected by Five Thirty Eight website @fivethirtyeight2024. By using a time series model, we would be able to use a line of best fit in between all the datapoint collected and using that line to predict the future results. We would also be able to adding the variable needed such as transparency score, pollscore, and numeric grade from the dataset in order to best predict our model. 
+
+In addition to the model selection, the dataset provided could also be improved for a future research. The dataset from Five Thirty Eight website @fivethirtyeight2024 mainly has variable related to pollsters. We should considering using characteristics about the presidential candidate in order to best predict the result of the election. For instance, the number of campaign done in each state, numbers of supporter in each campaign or various characteristics of candidate on political changes would be more accurate in the predicting support rate. Simply relying on the results of polls of polls will have various limitations since each pollsters' survey has pros and cons. The results of our prediction might be biased if any pollsters heavily rely on certain assumption, not counted in consideration in our model. 
+
 
 \newpage
 
 \appendix
 
-# Appendix
+# Appendix {#sec-appendix}
 
-
-# Additional data details
-
-## Model check {#sec-model-details}
-
-```{r}
-#| label: fig-pos_check_H
-#| echo: false
-#| fig-cap: "Posterior Predictive Check for All Models"
-
-# Load necessary libraries
-library(rstanarm)
-library(bayesplot)
-library(ggplot2)
-library(patchwork)  # For combining plots
-
-pp_check(model1) +  
-    theme_classic() +
-    theme(legend.position = "bottom")
-
-just_harris_high_quality <- read.csv(here::here("data/02-analysis_data/Harris.csv"))
-
-posterior_vs_prior(model1) +
-  theme_minimal() +
-  scale_color_brewer(palette = "Set1") +
-  theme(legend.position = "bottom") +
-  coord_flip()
-
-```
-```{r}
-#| label: fig-pos_check_T
-#| echo: false
-#| fig-cap: "Posterior Predictive Check for All Models"
-
-# Load necessary libraries
-library(rstanarm)
-library(bayesplot)
-library(ggplot2)
-library(patchwork)  # For combining plots
-
-pp_check(model2) +  
-    theme_classic() +
-    theme(legend.position = "bottom")
-
-just_trump_high_quality <- read.csv(here::here("data/02-analysis_data/Trump.csv"))
-
-posterior_vs_prior(model2) +
-  theme_minimal() +
-  scale_color_brewer(palette = "Set1") +
-  theme(legend.position = "bottom") +
-  coord_flip()
-
-```
-```{r}
-#| label: fig-CI_H
-#| echo: false
-#| fig-cap: "CI for predictors for Harris"
-
-# Load necessary libraries
-library(rstanarm)
-library(bayesplot)
-library(ggplot2)
-library(patchwork)  # For combining plots
-
-plot(
-  model1,
-  "areas")
-```
-```{r}
-#| label: fig-CI_T
-#| echo: false
-#| fig-cap: "CI for predictors for Trump"
-
-# Load necessary libraries
-library(rstanarm)
-library(bayesplot)
-library(ggplot2)
-library(patchwork)  # For combining plots
-
-plot(
-  model2,
-  "areas")
-```
-
-```{r}
-#| label: fig-DI_H
-#| echo: false
-#| fig-cap: "Model diagonostic for Harris"
-
-# Load necessary libraries
-library(rstanarm)
-library(bayesplot)
-library(ggplot2)
-library(patchwork)  # For combining plots
-
-plot(model1, "trace")
-plot(model1, "rhat")
-
-```
-```{r}
-#| label: fig-DI_T
-#| echo: false
-#| fig-cap: "Model diagonostic for Trump"
-
-# Load necessary libraries
-library(rstanarm)
-library(bayesplot)
-library(ggplot2)
-library(patchwork)  # For combining plots
-
-plot(model2, "trace")
-plot(model2, "rhat")
-
-```
-
-\newpage
-## pollster methodology analysis
+## Appendix 1 - Pollster Methodology Analysis {#sec-appendix-pollster_methodology}
 
 This survey was conducted by Redfield & Wilton Strategies to assess the voting intentions of eligible voters in key U.S. swing states ahead of the 2024 Presidential Election. The primary goal of this poll is to provide an accurate and timely snapshot of public opinion in states where electoral outcomes are uncertain and could have a decisive impact on the overall result of the election. Swing states, due to their political volatility and diverse voter bases, are critical in determining the balance of power in the U.S. electoral system. Understanding voter preferences in these states is essential for political analysts, campaigns, and the general public.
 
-### Population of Interest
+### Population of Interest {#sec-appendix-pollster_methodology-population}
 The population of interest for this survey consists of all eligible voters residing in major U.S. swing states, specifically Arizona, Florida, Georgia, Michigan, North Carolina, and Pennsylvania. These states are known for their fluctuating political alignments and are expected to play a crucial role in the upcoming election.
 
-### Sampling Frame
+### Sampling Frame {#sec-appendix-pollster_methodology-sampling}
 The population sampled includes eligible voters from Arizona, Florida, Georgia, Michigan, North Carolina, and Pennsylvania. Participants were selected via an online panel.
 
-### Sample
+### Sample {#sec-appendix-pollster_methodology-sample}
 The sample sizes for each state were as follows:
 
 Arizona: 750 respondents
@@ -319,24 +585,19 @@ North Carolina: 880 respondents
 
 Pennsylvania: 1,070 respondents
 
-## Weakness & Strength of the methodology
+### Weakness & Strength of the Methodology {#sec-appendix-pollster_methodology-weakness_strength}
 
-In terms of strengths, Redfield & Wilton has a great reputation for producing reliable polling data. They have employ a mix of online and telephone survey, which add in various resources of collecting their data. This approach can help reduce bias. In addition, Redfield & Wilton often target swing states, which makes their polls results important to the US president election.
+In terms of strengths, Redfield & Wilton has a great reputation for producing reliable polling data. According to the dataset given, they have a high pollscore of 0.4, transparency score of 9 and a numeric grade of 1.8. Redfield & Wilton also has the highest amount of polls conducted which makes a great source to use. Redfield & Wilton often target swing states, which makes their polls results important to the US president election.
 
-The weakness of their methodology would incorporate a certain potential bias based on their political leaning of their clients or media. This could cause a certain neutrality in their dataset. 
+The weakness of their methodology would incorporate a certain potential bias based on their political leaning of their clients or media. This could cause a certain neutrality in their dataset. In addition, their only methodology is through online panel which do not create a variation in the dataset. Polls that heavily rely on online panels may miss some segments of the population that are less active online.
 
-Overall, Redfield & Wilton has been considered as a competent, reputable and reliable pollster with his variaty and methodology on polls. Even though the pollster contained a potential bias, it has been a reliable resource in prediction of US president election. 
-
-
-# Model details {#sec-model-details}
-
-
+Overall, Redfield & Wilton has been considered as a competent, reputable and reliable pollster with high amount of polls conducted. Even though the pollster contained a potential bias in their methodology, it has been a reliable resource in prediction of US president election. 
 
 \newpage
 
-# Appendix 2 - Idealized Methodology and Survey
+## Appendix 2 - Idealized Methodology and Survey {#sec-appendix-survey}
 
-## Overview
+### Overview
 
 This section introduces an idealized methodology and survey with $100K budget to predict the 2024 US presidential election. The goal is to maximize the accuracy of the prediction under the budget. The subsections that describe the details of the idealized methodology and survey include sampling approach, respondents recruiting method, data validation, poll aggregation and the survey questions.
 
@@ -372,7 +633,13 @@ To aggregate the polls for all states, the result of each states is multiplied b
 
 ### Survey
 
-Google form of the survey is available here:  https://docs.google.com/forms/d/1obaebX3zqw7WJEd1lHrF-DVBXdZt5tbjHofjsWj9zf8/prefill 
+Google form of the survey is available here: [Google Form](https://docs.google.com/forms/d/1obaebX3zqw7WJEd1lHrF-DVBXdZt5tbjHofjsWj9zf8/prefill)
+
+**US Presidential Election Survey** \
+**Purpose:** pre-election survey on public votes distribution. \
+**Estimated Completion Time:** Less than 5 minutes \
+
+All responses are anonymous.
 
 1. What is the postal code of where you live?
 
@@ -418,7 +685,7 @@ Google form of the survey is available here:  https://docs.google.com/forms/d/1o
 * Non-binary
 * Prefer not to say
 
-8. What is your Ethnity/Race?
+8. What is your Ethnicity /Race?
 
 * White
 * Black or African American
@@ -428,7 +695,7 @@ Google form of the survey is available here:  https://docs.google.com/forms/d/1o
 * Native Hawaiian or Other Pacific Islander
 * Middle Eastern or North African
 * Prefer not to say
-* Other (please specify) [optional text box]
+
 
 9. What is your Education Level?
 
@@ -451,7 +718,6 @@ Google form of the survey is available here:  https://docs.google.com/forms/d/1o
 11. Is there anything else you’d like to share about your voting decision or concerns?
 
 
-
 ### Budget Specification
 
 * Physical and Online Recruitment: $30,000
@@ -465,7 +731,7 @@ Total: $100,000
 
 The survey uses cluster sampling to sample the swing states based on postal codes. After data collection and validation, weighting based on the likelihood of voting and decisiveness of the respondents, the total votes for Donald Trump and Kamala Harris are calulated. The candidate with more than 270 votes are predicted to win the election{@nationalarchives2024electoral}.
 
-# References
+# References {#sec-reference}
 
 
 
