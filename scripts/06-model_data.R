@@ -23,14 +23,6 @@ data <- read_csv("data/01-raw_data/poll_raw_data.csv") |>
 
 # Filter data to Harris estimates based on high-quality polls after she declared
 # Load required packages
-library(tidyr)
-library(readr)
-library(dplyr)
-library(lubridate)
-library(rstanarm)
-library(janitor)
-library(ggplot2)
-
 just_harris_high_quality <- read_parquet('data/02-analysis_data/Harris.parquet')
 just_trump_high_quality <- read_parquet('data/02-analysis_data/Trump.parquet')
 
