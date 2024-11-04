@@ -1,6 +1,6 @@
 ---
 title: "US President Prediction"
-subtitle: "Predict the results of 2024 US President Election"
+subtitle: "Harris has slightly more likelihood to win the election based on Bayesian Linear Model"
 author: 
   - Yun Chu
   - Felix Li
@@ -8,7 +8,7 @@ author:
 thanks: "Code and data are available at: [https://github.com/younazhao/US-President-Prediction/tree/main](https://github.com/younazhao/US-President-Prediction/tree/main)."
 date: 4 November 2024
 date-format: long
-abstract: "In this study, we aim to study the 2024 U.S. Presidential Election with the methodology of  polls of polls across various states. With the insightful analyses on polls provided by Redfiled & Wilton Strategies, the conducted survey on the population highlights various key point for the prediction of US president. Using Bayesian linear model, this report analyzes the prediction of presidential votes through data collected from pollsters. The prediction finding highlights the significance of candicate trustworthiness among the voter decision, providing insights for swing voters. This analysis offers valuable information into the potential electoral outcomes driving the 2024 US president election. "
+abstract: "In this study, we studied the 2024 U.S. Presidential Election with the methodology of polls of polls from national and state levels. With the analyses on polls provided by Redfiled & Wilton Strategies and idealized survey on the population, the paper highlights various key points for the prediction of US president. Using Bayesian linear model, this report predicts president election through data collected from pollsters. The prediction finding is that Kamala Harris has slightly more likelihood of winning the election. This analysis offers valuable information into the potential electoral outcomes driving the 2024 US president election."
 format: pdf
 number-sections: true
 toc: true
@@ -46,11 +46,11 @@ library(scales)
 
 # Introduction {#sec-Introduction}
 
-As November approaches, the United State of America's presidential election will soon be determined. The tight competition between Kamala Harris representing the Democratic Party and Donald Trump representing the Republican Party will determine the next President of United State for a 4 year term beginning January 2025 @electiondate. The final result will be held on November 5th 2024, which will be decided by a favorable outcome biased toward one candidate. Before this final date, various pollsters will use the method of "polls by polls" to provide a high-level view of public sentiment by averaging results from multiple polling sources and methods @pollsofpolls. From the dataset provided by Five Thirty Eight @fivethirtyeight2024, the paper could identify various results from polls of polls in order to predict the next president of America. 
+As November approaches, the United State of America's presidential election will soon be determined. The tight competition between Kamala Harris representing the Democratic Party and Donald Trump representing the Republican Party will determine the next President of United State for a 4 year term beginning January 2025 @electiondate. The final result will be held on November 5th 2024, which will be decided by a favorable outcome biased toward one candidate. Before this final date, various pollsters will conduct polls from both national and state level. Using the method of "polls by polls", a high-level view of public sentiment can be discovered by averaging results from multiple polling sources and methods @pollsofpolls. From the dataset provided by Five Thirty Eight @fivethirtyeight2024, the paper could identify various results from polls of polls in order to predict the next president of America. 
 
-By performing a Bayesian linear model, which formulate linear regression using probability distributions rather than point estimates @bayesian, the analysis focus on the support rate for the 2 main candidate, Kamala Harris and Donald Trump. This approach allows for a nuanced understanding of the likely range of outcomes by capturing variability in the polling data. By combining insights from various pollsters and applying a Bayesian linear model, this paper seeks to forecast the presidential election based on current trends and public opinion. 
+By performing a Bayesian linear model, which formulate linear regression using probability distributions rather than point estimates @bayesian, the analysis focus on the support rate for the 2 main candidates, Kamala Harris and Donald Trump. This approach allows for a nuanced understanding of the likely range of outcomes by capturing variability in the polling data. By combining insights from various pollsters and applying a Bayesian linear model, this paper seeks to forecast the presidential election based on current trends and public opinion. 
 
-To do this, Five Thirty Eight data were analysed from 2022 to 2024 in @sec-data. With our predicted model in @sec-model, the results in @sec-result show a preference toward Harris with a positive intercept of 40.97, over the results of Trump. In addition, the overall trend of Harris support rate has a larger increments than Trumps, suggesting a higher probability of winning this election. A discussion is provided in results and future suggestion in @sec-discussion. In the appendix, a pollster methodology analysis on Redfield & Wilton Strategies is performed in @sec-appendix-pollster_methodology. Lastly, an idealized methodology and survey is conducted in  @sec-appendix-survey.
+To do this, Five Thirty Eight data is analysed from 2022 to 2024 in @sec-data. With our predicted model in @sec-model, the results in @sec-result show a preference toward Harris with a positive intercept of 40.97, over the results of Trump. In addition, the overall trend of Harris support rate has a larger increments than Trumps, suggesting a higher probability of winning this election. A discussion is provided in results and future suggestion in @sec-discussion. In the appendix, a pollster methodology analysis on Redfield & Wilton Strategies is performed in @sec-appendix-pollster_methodology. Lastly, an idealized methodology and survey is conducted in  @sec-appendix-survey.
 
 
 # Data {#sec-data}
@@ -59,7 +59,7 @@ To do this, Five Thirty Eight data were analysed from 2022 to 2024 in @sec-data.
 
 The data used in this paper is sourced from FiveThirtyEight [@fivethirtyeight2024]. The polls dataset contains 52 columns and 16,408 rows. It has polls information from multiple pollsters with variables that evaluate each pollster's quality like numeric grade, pollscore, transparency and sample size, as well as other information about the pollster like start and end date of the poll. Similar datasets are available but this dataset has most precise date and is the reason that we choose this dataset.
 
-We use the statistical programming language R [@citeR] to download, clean and analyze data, as well as in exploratory data analysis and building models. Besides, the following packages are utilized in model generation and result production process:
+We use the statistical programming language R [@citeR] to download, clean and analyze data, as well as in exploratory data analysis and building models. Besides, the following packages are utilized in model generation and result production:
 
 - tidyverse [@tidyverse]
 - lubridate [@lubridate]
@@ -75,15 +75,18 @@ We use the statistical programming language R [@citeR] to download, clean and an
 - janitor [@janitor]
 - scales [@scales]
 - arrow [@arrow]
+- StanHeaders [@R-StanHeaders]
 
 
 ## Measurement {#sec-data-measurement}
+
+The outcome variable, percentage of the vote that the candidate received in the poll, is measured as the ratio of the number of people in the poll that supports the candidate and the total number of the people in the poll.
 	
-Since the dataset is a collection of polls from various pollsters, the measurement is done differently. We're interested in how each pollster conduct the polls. In @sec-appendix-pollster_methodology, the methodology and measurement of Redfield & Wilton Strategies is explained in detail. 
+Since the dataset is a collection of polls from various pollsters, the measurement of the predictor variables is done differently by each pollster. We're interested in how each pollster conduct the polls. In @sec-appendix-pollster_methodology, the methodology and measurement of Redfield & Wilton Strategies is studied and illustrated in detail. 
 
 ## Data Cleaning {#sec-data-cleaning}
 
-The data is cleaned by filtering out Harris and Trump respectively. Based on the average of the variables that evaluate the quality of the pollsters, we also filtered out the entries with insignificant and low numeric grade, transparency and pollscore.
+The data is cleaned by separating the rows with Harris and Trump a as candidate names respectively. Based on the average of the variables that evaluate the quality of the pollsters, we also filtered out the entries with insignificant and low-quality numeric grade, transparency and poll score.
 
 
 ## Summary Statistics {#sec-data-summary}
@@ -108,14 +111,14 @@ kable(summary_table, caption = "Statistics for Poll Percentage")
 
 ```
 
-@tbl-summarystatistics summarize the atribute of the poll percentages from the whole dataset. With maximum 70% and minimum 0%. We can tell that there is not extreme or abnormal values of the poll percentages.
+@tbl-summarystatistics summarizes the attribute of the poll percentages from the raw dataset. With maximum of 70% and minimum of 0,% there is not extreme or abnormal values of the poll percentages that we need to be cautious about.
 
 \newpage
 
 ```{r}
-#| label: fig-pollsbystate
+#| label: fig-pollsbypolltype
 #| echo: false
-#| fig-cap: "Distribution of Polls by Pollsters"
+#| fig-cap: "Distribution of Polls by Poll Type"
 #| warning: false
 
 # Apply filters to select relevant data
@@ -147,7 +150,7 @@ ggplot(pollster_selected, aes(x = sample_size, fill = state == "National")) +
 
 ```
 
-@fig-pollsbystate shows the distribution of polls by sample size and state. National polls has larger sample size but lower frequency while State polls has the opposite trend.
+@fig-pollsbypolltype shows the distribution of polls by sample size while differentiating between national and state polls. National polls has larger sample size with lower frequency while state polls has the opposite trend.
 
 \newpage
 
@@ -181,7 +184,7 @@ ggplot(nationalvstime, aes(x = end_date, y = pct, color = candidate_name)) +
 
 ```
 
-@fig-nationalvstime shows the national poll percentage for the most competitive candidates: Donald Trump and Kamala Harris since Kamala Harris became the president candidate. As the date closet to election day, the poll percentages of the two candidates become closer and closer.
+@fig-nationalvstime shows the national poll percentage for the most competitive candidates: Donald Trump and Kamala Harris since Kamala Harris became the president candidate. Kamala Harris has higher poll percentage for the most of the times. As the date gets closer to election day, the poll percentages of the two candidates become closer and closer.
 
 \newpage
 
@@ -222,6 +225,7 @@ ggplot(swingstates, aes(x = end_date, y = pct, color = candidate_name)) +
 # Model {#sec-model}
 
 In this analysis, we aim to model the popularity trends for the two 2024 president nominates, Kamala Harris and Donald Trump, based on high-quality polling data collected at the national level after Harris’s declaration on July 21, 2024. We used Bayesian linear regression models with Gaussian error structures to estimate changes in polling percentages over time for each candidate.
+
 
 ## Data Filtering and Preparation {#sec-model-preparation}
 
@@ -311,10 +315,10 @@ kable(model_summary, digits = 3)
 ```
 
 ## Overall Trend {#sec-result-trend}
-The intercept of both model is positive, with Harris at 40.47 and Trump slightly lower than Harris at 40.36. The trend of support rate for both candidates with respect of time is positive but Harris's increment (0.10) is larger than Trump's (0.06). 
+The intercept of both model is positive, with Harris at 40.466 and Trump slightly higher than Harris at 40.531. The trend of support rate for both candidates with respect of time is positive but Harris's increment (0.010) is larger than Trump's (0.006). 
 
 ## Model Diagnostics {#sec-result-diagnostics}
-The model diagnostics indicate a strong fit and reliable predictive performance for both candidates, as detailed in the plots in the appendix section @sec-app-M. Posterior predictive checks ( @fig-harrisposcheck_1, @fig-harrisposcheck_2, @fig-trumpposcheck_1, and @fig-trumpposcheck_2) show that the predicted values align well with the observed data, suggesting that the models effectively capture key data patterns. Furthermore, the comparison of posterior and prior variables indicates minimal deviation, affirming an appropriate choice of priors. The credible intervals for the predictors (@fig-CIHarris and @fig-CITrump) encompass the observed support rates, demonstrating that the models adequately account for uncertainty in their predictions.
+The model diagnostics indicate a strong fit and reliable predictive performance for both candidates, as detailed in the plots in the model section @sec-appendix-validation. Posterior predictive checks ( @fig-harrisposcheck_1, @fig-harrisposcheck_2, @fig-trumpposcheck_1, and @fig-trumpposcheck_2) show that the predicted values align well with the observed data, suggesting that the models effectively capture key data patterns. Furthermore, the comparison of posterior and prior variables indicates minimal deviation, affirming an appropriate choice of priors. The credible intervals for the predictors (@fig-CIHarris and @fig-CITrump) encompass the observed support rates, demonstrating that the models adequately account for uncertainty in their predictions.
 
 Additional robustness checks (@fig-harrisdi_1, @fig-harrisdi_1, @fig-trumpdi_1, and @fig-trumpdi_2) confirm the stability of these models. The R-hat values for all parameters are below 1.1, indicating good convergence of the MCMC chains and reliable parameter estimates. This convergence supports the conclusion that the sampling process reached a stable distribution, reinforcing the credibility of our inferences.
 
@@ -405,6 +409,8 @@ ggplot(data = days_range, aes(x = end_date)) +
 
 ```
 
+@fig-predictiongraph is the prediction results using the Bayesian linear regression model we build earlier. As can be seen from the graph, the polling percentage of Harris and Trump is very close to each other with Harris has slightly higher polling percentage than Trump on the election day. The dotted vertical black line is November 5th which is the election day. Since Harris announced her candidacy, the competition between her and Trump is very intense as the two lines are almost overlapping.
+
 # Discussion {#sec-discussion}
 
 ## Limitation {#sec-discussion-limitation}
@@ -417,9 +423,9 @@ Additionally, our reliance on "polls of polls" introduces biases stemming from d
 
 ## Suggestion for Future Step {#sec-discussion-suggestion}
 
-In terms of suggestion for future step, we should considering using time series as a model for this research. As we use start time and end time for the dataset of pollster, the prediction is continuous on this timeline. As more polls of polls are performed by various pollster, more data points are been collected by Five Thirty Eight website @fivethirtyeight2024. By using a time series model, we would be able to use a line of best fit in between all the datapoint collected and using that line to predict the future results. We would also be able to adding the variable needed such as transparency score, pollscore, and numeric grade from the dataset in order to best predict our model. 
+In terms of suggestion for future step, we should considering using time series as a model for this research. As we use start time and end time for the dataset of pollster, the prediction is continuous on this timeline. As more polls of polls are performed by various pollster, more data points have been collected by Five Thirty Eight website @fivethirtyeight2024. By using a time series model, we would be able to use a line of best fit in between all the data points collected and using that line to predict the future results. We would also be able to adding the variable needed such as transparency score, pollscore, and numeric grade from the dataset in order to best predict our model. 
 
-In addition to the model selection, the dataset provided could also be improved for a future research. The dataset from Five Thirty Eight website @fivethirtyeight2024 mainly has variable related to pollsters. We should considering using characteristics about the presidential candidate in order to best predict the result of the election. For instance, the number of campaign done in each state, numbers of supporter in each campaign or various characteristics of candidate on political changes would be more accurate in the predicting support rate. Simply relying on the results of polls of polls will have various limitations since each pollsters' survey has pros and cons. The results of our prediction might be biased if any pollsters heavily rely on certain assumption, not counted in consideration in our model. 
+In addition to the model selection, the dataset provided could also be improved for a future research. The dataset from Five Thirty Eight website @fivethirtyeight2024 mainly has variables related to pollsters. We should considering using characteristics about the presidential candidate in order to best predict the result of the election. For instance, the number of campaign done in each state, numbers of supporter in each campaign or various characteristics of candidate on political changes would be more accurate in the predicting support rate. Simply relying on the results of polls of polls will have various limitations since each pollsters' survey has pros and cons. The results of our prediction might be biased if any pollster heavily relies on certain assumption, not counted in consideration in our model. 
 
 
 \newpage
@@ -467,13 +473,29 @@ Overall, Redfield & Wilton has been considered as a competent, reputable and rel
 
 ### Overview
 
-This section introduces an idealized methodology and survey with $100K budget to predict the 2024 US presidential election. The goal is to maximize the accuracy of the prediction under the budget. The subsections that describe the details of the idealized methodology and survey include sampling approach, respondents recruiting method, data validation, poll aggregation and the survey questions.
+This section introduces an idealized methodology and survey with $100K budget to predict the 2024 US presidential election. The goal is to maximize the accuracy of the prediction under the budget. The subsections that describe the details of the idealized methodology and survey include @sec-appendix-survey-samp, @sec-appendix-survey-rec, @sec-appendix-survey-data, @sec-appendix-survey-poll, @sec-appendix-survey-sur, @sec-appendix-survey-bug, and @sec-appendix-survey-con.
 
-### Sampling Approach
+### Sampling Approach{#sec-appendix-survey-samp}
 
 Cluster sampling is the sampling approach used. Specifically clusters are states. In our case, the swing states as they are the states that would affect the election result, i.e. Arizona, Florida, Gegorgia, Iowa, Michigan, Nevada, North Carolina, Pennsylvania, and Wisconsin. In each swing state, units are selected based on postal code. Using simple random sampling, 100 distinct postal codes are randomly selected. People whose living address have the postal codes selected are the target respondents. For the postal codes that lie in the non-residential area, the postal codes would be ignored.
 
-### Recruitment Strategy
+#### Cluster Sampling in the Survey
+
+**Cluster sampling** divides the population into clusters—in this case, swing states—which are geographically and politically distinct areas expected to influence the election. By focusing on swing states, we can gather insights efficiently within a $100,000 budget.
+
+##### Strengths of Cluster Sampling
+1. **Cost Efficiency**: Cluster sampling limits data collection to key swing states, saving time and resources (Thompson, 2012).
+2. **Representative Coverage of Key Regions**: Swing states reflect crucial voter trends, making them ideal clusters to predict election outcomes (Kalton, 1983).
+3. **Simplified Data Collection**: Sampling by postal code within swing states keeps logistics manageable while focusing on high-impact areas (Lohr, 2009).
+
+##### Weaknesses of Cluster Sampling
+1. **Higher Sampling Error**: Cluster sampling can lead to more sampling error than other methods, especially if swing states are internally homogeneous (Cochran, 1977).
+2. **Potential Bias**: Focusing only on swing states may exclude diverse opinions from non-swing states, limiting national generalizability (Groves et al., 2004).
+
+### Cluster Sampling Simulation
+To validate this approach, we could simulate voter data across all states and compare cluster sampling in swing states with random sampling and stratified sampling. The expected findings would highlight the trade-off between cost efficiency and slightly higher sampling error, supporting cluster sampling as a feasible method within budget constraints.
+
+### Recruitment Strategy{#sec-appendix-survey-rec}
 
 The strategy to be implemented to recruit respondents is a combination of physical and online recruitment. 
 
@@ -481,31 +503,37 @@ If the building corresponds to the postal code is a condo building, a paper with
 
 All respondents are rewarded with a $5 deposit to their bank account or a gift card of their choice. Each IP address is limited to answer the survey once.
 
-### Data Validation
+### Data Validation{#sec-appendix-survey-data}
 
 To improve accuracy of the prediction results, the following data validation approaches will be done.
 
 * Postal Code Validation
-    + All the postal codes got from respondents are going to be validated to check if it is one of the randomly selected postal codes. If not, the response would not be considered when the prediction is done.
+    + All the postal codes received from respondents are going to be validated to check if it is one of the randomly selected postal codes. If not, the response would not be considered in prediction.
 * Just-for-Rewards Prevention
-    + To identify the responses that are not seriously answered, the last question of the survey is set test if the respondents are serious and careful when answering the questions.
+    + To identify the responses that are not seriously answered, the fifth question of the survey is set test if the respondents are serious and careful when answering the questions.
 * Age Validity
     + Responses with age under 18 but answered "Yes" to "Are you registered to Vote" are discarded.
 
 
-### Poll Aggregation
+### Poll Aggregation{#sec-appendix-survey-poll}
 
-For each of the swing states, the result would be calculated based on the votes to Trump versus Harris because they are the candidates with the greatest chances of winning. Based on the decisiveness of the respondents and the likelihood of voting from the responses, the individual votes will be weighted when calculating the results for each swing states.
+For each of the swing states, the result would be calculated based on the votes to Trump versus Harris because they are the candidates with the greatest chances of winning. Based on the decisiveness of the respondents from the responses, the individual votes will be weighted when calculating the results for each swing states.
 
 To aggregate the polls for all states, the result of each states is multiplied by its electoral votes. After summing the electoral votes for Trump or Harris, the estimated electoral votes that Trump or Harris get is available. The candidate that has more than 270 electoral votes would be predicted to win the election {@nationalarchives2024electoral}.
 
-### Survey
+### Survey{#sec-appendix-survey-sur}
 
 Google form of the survey is available here: [Google Form](https://docs.google.com/forms/d/1obaebX3zqw7WJEd1lHrF-DVBXdZt5tbjHofjsWj9zf8/prefill)
 
 **US Presidential Election Survey** \
-**Purpose:** pre-election survey on public votes distribution. \
-**Estimated Completion Time:** Less than 5 minutes \
+**Introduction:** Thank you for participating in this survey! As we approach the upcoming U.S. presidential election, understanding the preferences, concerns, and voting intentions of voters like you is crucial. This survey is designed to gather insights from individuals across key swing states to help us analyze trends in voter sentiment and preferences among major candidates.
+
+Your responses will be kept confidential and used solely for research purposes. By participating, you’re contributing valuable data that will help illuminate the factors influencing voter decisions in this critical election. The survey will ask questions about your voting registration status, candidate preferences, likelihood of voting, and some general demographic information. Additionally, we may ask a few control questions to ensure the accuracy of our data.
+
+The survey should take about 5-10 minutes to complete. Thank you for your time and input—your perspective is greatly appreciated!
+**Estimated Completion Time:** 5-10 minutes \
+**Contact Person:** Yun Chu 
+**Email Address:** yun.chu\@mail.utoronto.ca
 
 All responses are anonymous.
 
@@ -585,8 +613,12 @@ All responses are anonymous.
 
 11. Is there anything else you’d like to share about your voting decision or concerns?
 
+Thank you for taking the time to complete this survey. Your responses provide valuable insights that contribute to a deeper understanding of voter sentiment in this critical election season. Your input is greatly appreciated and will play an important role in our analysis.
 
-### Budget Specification
+We are grateful for your participation and thoughtful responses. Thank you for helping us make this research possible!
+
+
+### Budget Specification{#sec-appendix-survey-bug}
 
 * Physical and Online Recruitment: $30,000
 * Rewards for Respondents: $50,000
@@ -595,13 +627,11 @@ All responses are anonymous.
 
 Total: $100,000
 
-### Conclusion
+### Conclusion{#sec-appendix-survey-con}
 
-The survey uses cluster sampling to sample the swing states based on postal codes. After data collection and validation, weighting based on the likelihood of voting and decisiveness of the respondents, the total votes for Donald Trump and Kamala Harris are calulated. The candidate with more than 270 votes are predicted to win the election{@nationalarchives2024electoral}.
+The survey uses cluster sampling to sample the swing states based on postal codes. After data collection and validation, weighting based on the decisiveness of the respondents, the polling percentages of Donald Trump and Kamala Harris can be calculated. The candidate with more than 270 votes are predicted to win the election{@nationalarchives2024electoral}.
 
-\newpage
-
-## Appendix 3 - Model validation plots {#sec-app-M}
+## Appendix 3 - Model validation plots {#sec-appendix-validation}
 
 ```{r}
 #| label: fig-harrisposcheck_1
@@ -757,6 +787,7 @@ plot(model2, "rhat")
 ```
 
 \newpage
+
 # References {#sec-reference}
 
 
